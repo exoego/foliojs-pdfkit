@@ -9,7 +9,7 @@ const external = [
   'fontkit',
   'events',
   'linebreak',
-  'png-js',
+  'pngjs',
   'crypto-js',
   'saslprep',
   'jpeg-exif'

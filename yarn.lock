@@ -6329,7 +6329,7 @@ __metadata:
     linebreak: "npm:^1.1.0"
     markdown: "npm:~0.5.0"
     pdfjs-dist: "npm:^2.14.305"
-    png-js: "npm:^1.0.0"
+    pngjs: "npm:^7.0.0"
     prettier: "npm:3.4.2"
     pug: "npm:^3.0.3"
     rollup: "npm:^2.79.2"
@@ -6392,13 +6392,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"png-js@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "png-js@npm:1.0.0"
-  checksum: 10c0/b591107bb888c66cb1799327774f73f2865a366b5992ed7335c81610eab0e9cb4f13fb396e3c00e28781ada6ccde170b566209e9df833a2abe71d11da55aea85
-  languageName: node
-  linkType: hard
-
 "pngjs@npm:^3.4.0":
   version: 3.4.0
   resolution: "pngjs@npm:3.4.0"
@@ -6410,6 +6403,13 @@ __metadata:
   version: 6.0.0
   resolution: "pngjs@npm:6.0.0"
   checksum: 10c0/ac23ea329b1881d1a10575aff58116dc27b894ec3f5b84ba15c7f527d21e609fbce7ba16d48f8ccb86c7ce45ceed622472765476ab2875949d4bec55e153f87a
+  languageName: node
+  linkType: hard
+
+"pngjs@npm:^7.0.0":
+  version: 7.0.0
+  resolution: "pngjs@npm:7.0.0"
+  checksum: 10c0/0d4c7a0fd476a9c33df7d0a2a73e1d56537628a668841f6995c2bca070cf30819f9254a64363266bc14ef2fee47659dd3b4f2b18eec7ab65143015139f497b38
   languageName: node
   linkType: hard
 
