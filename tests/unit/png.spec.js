@@ -10,13 +10,13 @@ describe('PNGImage', () => {
     const img = new PNGImage(fs.readFileSync(fileName), 'I1');
     // noop data manipulation methods
     img.loadIndexedAlphaChannel = () => {
-      if (img._hasIndexedAlpha()) {
+      if (img.image.transparency.indexed) {
         img.alphaChannel = {};
         img.finalize();
       }
     };
     img.splitAlphaChannel = () => {
-      if (img.image.alpha) {
+      if (img.image.hasAlphaChannel) {
         img.alphaChannel = {};
         img.finalize();
       }
@@ -52,6 +52,7 @@ describe('PNGImage', () => {
       ColorSpace: 'DeviceRGB',
       Filter: 'FlateDecode',
       Height: 533,
+      Length: 397011,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 400,
@@ -62,7 +63,7 @@ describe('PNGImage', () => {
       BitsPerComponent: 8,
       Colors: 3,
       Columns: 400,
-      Predictor: 1,
+      Predictor: 15,
     });
   });
 
@@ -74,7 +75,6 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 0
-    // Note: pngjs sets alpha: true for images with transColor, so no DecodeParms
 
     const img = createImage(
       './tests/images/pngsuite-rgb-transparent-white.png',
@@ -83,14 +83,23 @@ describe('PNGImage', () => {
     expect(img.finalize).toBeCalledTimes(1);
 
     expect(img.obj.data).toMatchObject({
-      BitsPerComponent: 8, // pngjs normalizes to 8-bit
+      BitsPerComponent: 16,
       ColorSpace: 'DeviceRGB',
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 1932,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
-      Mask: [65535, 65535, 65535, 65535, 65535, 65535], // transColor for 16-bit white
+      Mask: [65535, 65535, 65535, 65535, 65535, 65535],
+      DecodeParms: expect.any(PDFReference),
+    });
+
+    expect(img.obj.data.DecodeParms.data).toMatchObject({
+      BitsPerComponent: 16,
+      Colors: 3,
+      Columns: 32,
+      Predictor: 15,
     });
   });
 
@@ -112,6 +121,7 @@ describe('PNGImage', () => {
       ColorSpace: 'DeviceRGB',
       Filter: 'FlateDecode',
       Height: 400,
+      Length: 47715,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 409,
@@ -124,6 +134,7 @@ describe('PNGImage', () => {
       Decode: [0, 1],
       Filter: 'FlateDecode',
       Height: 400,
+      Length: 16,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 409,
@@ -148,6 +159,7 @@ describe('PNGImage', () => {
       ColorSpace: 'DeviceRGB',
       Filter: 'FlateDecode',
       Height: 65,
+      Length: 28537,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 175,
@@ -160,6 +172,7 @@ describe('PNGImage', () => {
       Decode: [0, 1],
       Filter: 'FlateDecode',
       Height: 65,
+      Length: 16,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 175,
@@ -174,29 +187,29 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 0
-    // Note: pngjs expands palette to RGBA, alpha may be present
 
     const img = createImage('./examples/images/test3.png');
 
     expect(img.finalize).toBeCalledTimes(1);
 
-    // pngjs may set alpha: true for palette images
-    // Check if SMask is present (alpha channel) or DecodeParms (no alpha)
     expect(img.obj.data).toMatchObject({
       BitsPerComponent: 8,
+      ColorSpace: ['Indexed', 'DeviceRGB', 255, expect.any(PDFReference)],
       Filter: 'FlateDecode',
       Height: 540,
+      Length: 56682,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 980,
+      DecodeParms: expect.any(PDFReference),
     });
 
-    // ColorSpace should be either Indexed or DeviceRGB depending on pngjs behavior
-    expect(
-      img.obj.data.ColorSpace === 'DeviceRGB' ||
-        (Array.isArray(img.obj.data.ColorSpace) &&
-          img.obj.data.ColorSpace[0] === 'Indexed'),
-    ).toBe(true);
+    expect(img.obj.data.DecodeParms.data).toMatchObject({
+      BitsPerComponent: 8,
+      Colors: 1,
+      Columns: 980,
+      Predictor: 15,
+    });
   });
 
   test('Pallete indexed transparency 8bit', () => {
@@ -216,12 +229,22 @@ describe('PNGImage', () => {
 
     expect(img.obj.data).toMatchObject({
       BitsPerComponent: 8,
+      ColorSpace: ['Indexed', 'DeviceRGB', 244, expect.any(PDFReference)],
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 650,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
+      DecodeParms: expect.any(PDFReference),
       SMask: expect.any(PDFReference),
+    });
+
+    expect(img.obj.data.DecodeParms.data).toMatchObject({
+      BitsPerComponent: 8,
+      Colors: 1,
+      Columns: 32,
+      Predictor: 15,
     });
 
     expect(img.obj.data.SMask.data).toMatchObject({
@@ -230,6 +253,7 @@ describe('PNGImage', () => {
       Decode: [0, 1],
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 16,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
@@ -244,7 +268,6 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 0
-    // Note: pngjs normalizes to 8-bit
 
     const img = createImage(
       './tests/images/pallete-transparent-white-1bit.png',
@@ -253,21 +276,32 @@ describe('PNGImage', () => {
     expect(img.finalize).toBeCalledTimes(1);
 
     expect(img.obj.data).toMatchObject({
-      BitsPerComponent: 8, // pngjs normalizes to 8-bit
+      BitsPerComponent: 1,
+      ColorSpace: ['Indexed', 'DeviceRGB', 1, expect.any(PDFReference)],
       Filter: 'FlateDecode',
       Height: 50,
+      Length: 64,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 290,
+      DecodeParms: expect.any(PDFReference),
       SMask: expect.any(PDFReference),
     });
 
+    expect(img.obj.data.DecodeParms.data).toMatchObject({
+      BitsPerComponent: 1,
+      Colors: 1,
+      Columns: 290,
+      Predictor: 15,
+    });
+
     expect(img.obj.data.SMask.data).toMatchObject({
-      BitsPerComponent: 8,
+      BitsPerComponent: 8, // ????
       ColorSpace: 'DeviceGray',
       Decode: [0, 1],
       Filter: 'FlateDecode',
       Height: 50,
+      Length: 16,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 290,
@@ -292,6 +326,7 @@ describe('PNGImage', () => {
       ColorSpace: 'DeviceGray',
       Filter: 'FlateDecode',
       Height: 428,
+      Length: 82633,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 320,
@@ -307,7 +342,6 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 0
-    // Note: pngjs sets alpha: true for images with transColor, so no DecodeParms
 
     const img = createImage(
       './tests/images/pngsuite-gray-transparent-black.png',
@@ -316,14 +350,23 @@ describe('PNGImage', () => {
     expect(img.finalize).toBeCalledTimes(1);
 
     expect(img.obj.data).toMatchObject({
-      BitsPerComponent: 8, // pngjs normalizes to 8-bit
+      BitsPerComponent: 4,
       ColorSpace: 'DeviceGray',
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 328,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
-      Mask: [15, 15], // transColor for 4-bit (max value 15)
+      Mask: [15, 15], // tRNS value in PNG file (4-bit max value)
+      DecodeParms: expect.any(PDFReference),
+    });
+
+    expect(img.obj.data.DecodeParms.data).toMatchObject({
+      BitsPerComponent: 4,
+      Colors: 1,
+      Columns: 32,
+      Predictor: 15,
     });
   });
 
@@ -335,7 +378,6 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 0
-    // Note: pngjs sets alpha: true for images with transColor, so no DecodeParms
 
     const img = createImage(
       './tests/images/pngsuite-gray-transparent-white.png',
@@ -344,14 +386,23 @@ describe('PNGImage', () => {
     expect(img.finalize).toBeCalledTimes(1);
 
     expect(img.obj.data).toMatchObject({
-      BitsPerComponent: 8, // pngjs normalizes to 8-bit
+      BitsPerComponent: 16,
       ColorSpace: 'DeviceGray',
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 1212,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
-      Mask: [65535, 65535], // transColor for 16-bit white
+      Mask: [65535, 65535], // 16-bit white
+      DecodeParms: expect.any(PDFReference),
+    });
+
+    expect(img.obj.data.DecodeParms.data).toMatchObject({
+      BitsPerComponent: 16,
+      Colors: 1,
+      Columns: 32,
+      Predictor: 15,
     });
   });
 
@@ -373,6 +424,7 @@ describe('PNGImage', () => {
       ColorSpace: 'DeviceGray',
       Filter: 'FlateDecode',
       Height: 112,
+      Length: 9922,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 112,
@@ -385,6 +437,7 @@ describe('PNGImage', () => {
       Decode: [0, 1],
       Filter: 'FlateDecode',
       Height: 112,
+      Length: 16,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 112,
@@ -399,7 +452,6 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 1
-    // Note: pngjs handles Adam7 interlacing
 
     const img = createImage('./tests/images/interlaced-grayscale-8bit.png');
 
@@ -410,6 +462,7 @@ describe('PNGImage', () => {
       ColorSpace: 'DeviceGray',
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 181,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
@@ -432,7 +485,6 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 1
-    // Note: pngjs expands palette to RGBA and handles Adam7 interlacing
 
     const img = createImage('./tests/images/interlaced-pallete-8bit.png');
 
@@ -440,19 +492,22 @@ describe('PNGImage', () => {
 
     expect(img.obj.data).toMatchObject({
       BitsPerComponent: 8,
+      ColorSpace: ['Indexed', 'DeviceRGB', 255, expect.any(PDFReference)],
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 674,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
+      DecodeParms: expect.any(PDFReference),
     });
 
-    // pngjs may expand palette to RGB, so ColorSpace could be DeviceRGB or Indexed
-    expect(
-      img.obj.data.ColorSpace === 'DeviceRGB' ||
-        (Array.isArray(img.obj.data.ColorSpace) &&
-          img.obj.data.ColorSpace[0] === 'Indexed'),
-    ).toBe(true);
+    expect(img.obj.data.DecodeParms.data).toMatchObject({
+      BitsPerComponent: 8,
+      Colors: 1,
+      Columns: 32,
+      Predictor: 1,
+    });
   });
 
   test('Interlaced RGB (8bit)', () => {
@@ -463,7 +518,6 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 1
-    // Note: pngjs handles Adam7 interlacing
 
     const img = createImage('./tests/images/interlaced-rgb-8bit.png');
 
@@ -474,6 +528,7 @@ describe('PNGImage', () => {
       ColorSpace: 'DeviceRGB',
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 242,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
@@ -496,17 +551,17 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 1
-    // Note: pngjs handles Adam7 interlacing and preserves 16-bit depth
 
     const img = createImage('./tests/images/interlaced-rgb-16bit.png');
 
     expect(img.finalize).toBeCalledTimes(1);
 
     expect(img.obj.data).toMatchObject({
-      BitsPerComponent: 16, // pngjs preserves 16-bit depth
+      BitsPerComponent: 16,
       ColorSpace: 'DeviceRGB',
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 522,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
@@ -529,7 +584,6 @@ describe('PNGImage', () => {
     // Compression = 0
     // Filter = 0
     // Interlace = 1
-    // Note: pngjs handles Adam7 interlacing
 
     const img = createImage('./tests/images/interlaced-rgb-alpha-8bit.png');
 
@@ -540,6 +594,7 @@ describe('PNGImage', () => {
       ColorSpace: 'DeviceRGB',
       Filter: 'FlateDecode',
       Height: 32,
+      Length: 288,
       Subtype: 'Image',
       Type: 'XObject',
       Width: 32,
